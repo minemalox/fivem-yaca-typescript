@@ -1,10 +1,11 @@
-import { cache, generateRandomName } from "utils";
-import type { DataObject, ServerCache, YacaServerConfig, YacaSharedConfig } from "types";
+import { generateRandomName } from "utils";
+import { DataObject, defaultServerConfig, defaultSharedConfig, ServerCache, YacaServerConfig, YacaSharedConfig } from "types";
 import { YaCAServerMegaphoneModule, YaCAServerPhoneModle, YaCAServerRadioModule } from "yaca";
 import { YaCAServerSaltyChatBridge } from "../bridge/saltychat";
 import { initLocale } from "common/locale";
 import { checkVersion } from "../utils/versioncheck";
 import { VOICE_RANGE_STATE_NAME } from "common/constants";
+import { loadConfig } from "common/config";
 
 /**
  * The player data type for YaCA.
@@ -57,13 +58,19 @@ export class YaCAServerModule {
   constructor() {
     console.log("~g~ --> YaCA: Server loaded");
 
-    this.serverConfig = JSON.parse(LoadResourceFile(cache.resource, "config/server.json"));
-
-    this.sharedConfig = JSON.parse(LoadResourceFile(cache.resource, "config/shared.json"));
+    this.serverConfig = loadConfig<YacaServerConfig>("config/server.json", defaultServerConfig);
+    this.sharedConfig = loadConfig<YacaSharedConfig>("config/shared.json", defaultSharedConfig);
 
     initLocale(this.sharedConfig.locale);
 
-    this.defaultVoiceRange = this.sharedConfig.voiceRange.ranges[this.sharedConfig.voiceRange.defaultIndex] ?? 1;
+    if (this.sharedConfig.voiceRange.ranges[this.sharedConfig.voiceRange.defaultIndex]) {
+      this.defaultVoiceRange = this.sharedConfig.voiceRange.ranges[this.sharedConfig.voiceRange.defaultIndex];
+    } else {
+      this.defaultVoiceRange = 1;
+      this.sharedConfig.voiceRange.ranges = [1];
+
+      console.error("[YaCA] Default voice range is not set correctly in the config.");
+    }
 
     this.phoneModule = new YaCAServerPhoneModle(this);
     this.radioModule = new YaCAServerRadioModule(this);
@@ -72,12 +79,12 @@ export class YaCAServerModule {
     this.registerExports();
     this.registerEvents();
 
-    if (this.sharedConfig.saltyChatBridge?.enabled) {
+    if (this.sharedConfig.saltyChatBridge.enabled) {
       this.sharedConfig.maxRadioChannels = 2;
       this.saltChatBridge = new YaCAServerSaltyChatBridge(this);
     }
 
-    if (this.sharedConfig.versionCheck ?? true) {
+    if (this.sharedConfig.versionCheck) {
       checkVersion().then();
     }
   }
@@ -95,7 +102,7 @@ export class YaCAServerModule {
    * @param {number} src - The source-id of the player to initialize.
    */
   connectToVoice(src: number) {
-    const name = generateRandomName(src, this.nameSet, this.serverConfig.userNamePattern ?? "[{serverid}] {guid}");
+    const name = generateRandomName(src, this.nameSet, this.serverConfig.userNamePattern);
     if (!name) {
       return;
     }
@@ -253,7 +260,7 @@ export class YaCAServerModule {
     }
 
     if (!isFirstConnect) {
-      const name = generateRandomName(src, this.nameSet, this.serverConfig.userNamePattern ?? "[{serverid}] {guid}");
+      const name = generateRandomName(src, this.nameSet, this.serverConfig.userNamePattern);
       if (!name) {
         return;
       }
