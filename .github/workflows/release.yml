@@ -59,7 +59,7 @@ jobs:
 
       - name: Bundle files
         run: |
-          cd ./resource && zip -r ../../yaca-voice.zip ./yaca-voice
+          cd ./resource && zip -r ../yaca-voice.zip ./yaca-voice
 
       - name: Update repository
         run: |
