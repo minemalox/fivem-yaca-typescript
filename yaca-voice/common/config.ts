@@ -25,7 +25,7 @@ export function loadConfig<T extends object>(filePath: string, defaultValues: T)
 
   for (const key in parsedData) {
     if (!(key in defaultValues)) {
-      console.warn(`[YaCA] Unknown config key '${key}' found in config file. This value will be ignored and can be removed.`);
+      console.warn(`[YaCA] Unknown config key '${key}' found in config file. This keys will be ignored and can be removed.`);
     }
   }
 
